@@ -6,17 +6,17 @@ import java.sql.DriverManager;
 
 public class sqlconectar {
         Connection conexion;
-        String host = "servermysqlorsa.mysql.database.azure.com";
-        String port = "3306";
-        String namedb = "ORSA";
-        String usuario = "orsamysql";
-        String key = "sA*2002$";
+        String host = "";
+        String port = "";
+        String namedb = "";
+        String usuario = "";
+        String key = "";
         //Driver
         
         String driver = "com.mysql.cj.jdbc.Driver";
         
         // URL
-        String url = "jdbc:mysql://servermysqlorsa.mysql.database.azure.com:3306/ORSA";
+        String url = "";
         
     public Connection sqlconectando(){
         
