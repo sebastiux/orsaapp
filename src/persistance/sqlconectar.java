@@ -6,9 +6,12 @@ import java.sql.DriverManager;
 
 public class sqlconectar {
         Connection conexion;
+        
+        
+    public Connection sqlconectando(){
         String host = "";
         String port = "";
-        String namedb = "";
+        String namedb = "ORSA";
         String usuario = "";
         String key = "";
         //Driver
@@ -16,10 +19,7 @@ public class sqlconectar {
         String driver = "com.mysql.cj.jdbc.Driver";
         
         // URL
-        String url = "";
-        
-    public Connection sqlconectando(){
-        
+        String url = "jdbc:mysql:///ORSA";
         
         
         try {

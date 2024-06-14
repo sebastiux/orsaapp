@@ -528,49 +528,50 @@ public void muestratablamenup(JTable tablav) {
     }
     
    public void tablaasignados(JTable tablaa) {
-        PreparedStatement ps1 = null;
-        ResultSet rs1 = null;
-        persistance.sqlconectar objetoconector = new persistance.sqlconectar();
+  PreparedStatement ps1 = null;
+    ResultSet rs1 = null;
+    persistance.sqlconectar objetoconector = new persistance.sqlconectar();
 
-        try {
-        
+    try {
+        // Query para obtener los nombres de los trabajadores
+        String query1 = "SELECT idtrabajador AS ID, nombre AS Nombre FROM trabajador";
+        ps1 = objetoconector.sqlconectando().prepareStatement(query1);
 
-            // Query para obtener los nombres de los trabajadores
-            String query1 = "SELECT nombre FROM trabajador";
-            ps1 = objetoconector.sqlconectando().prepareStatement(query1);
-
-            // Crear el modelo de la tabla
-            DefaultTableModel model = new DefaultTableModel() {
-                @Override
-                public Class<?> getColumnClass(int columnIndex) {
-                    return columnIndex == 1 ? Boolean.class : String.class;
-                }
-            };
-            model.addColumn("Nombre");
-            model.addColumn("Seleccionar");
-
-            // Asignar el modelo a la tabla
-            tablaa.setModel(model);
-
-            // Ejecutar la consulta y llenar la tabla con los nombres
-            rs1 = ps1.executeQuery();
-            while (rs1.next()) {
-                String nombre = rs1.getString("nombre");
-                boolean seleccionado = false; // Por defecto, ningún checkbox seleccionado
-                model.addRow(new Object[]{nombre, seleccionado});
+        // Crear el modelo de la tabla
+        DefaultTableModel model = new DefaultTableModel() {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                // La tercera columna (índice 2) es de tipo Boolean
+                return columnIndex == 2 ? Boolean.class : String.class;
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Error: " + e.toString());
-        } finally {
-            // Cerrar los recursos en el bloque finally
-            try {
-                if (rs1 != null) rs1.close();
-                if (ps1 != null) ps1.close();
-                if (objetoconector.sqlconectando() != null) objetoconector.sqlconectando().close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        };
+        model.addColumn("ID");
+        model.addColumn("Nombre");
+        model.addColumn("Seleccionar");
+
+        // Asignar el modelo a la tabla
+        tablaa.setModel(model);
+
+        // Ejecutar la consulta y llenar la tabla con los nombres
+        rs1 = ps1.executeQuery();
+        while (rs1.next()) {
+            String id = rs1.getString("ID");
+            String nombre = rs1.getString("Nombre");
+            boolean seleccionado = false; // Por defecto, ningún checkbox seleccionado
+            model.addRow(new Object[]{id, nombre, seleccionado});
         }
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(null, "Error: " + e.toString());
+    } finally {
+        // Cerrar los recursos en el bloque finally
+        try {
+            if (rs1 != null) rs1.close();
+            if (ps1 != null) ps1.close();
+            if (objetoconector.sqlconectando() != null) objetoconector.sqlconectando().close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     }
     
     public void tablavistaasignaciones(JTable tablav) {
@@ -665,46 +666,90 @@ public void muestratablamenup(JTable tablav) {
         }
     }
     
-    public void insertarpersonalasignado(JTable personas, int idasignacion) {
-        //Connection conn = null;
-        PreparedStatement ps1 = null;
-        ResultSet rs1 = null;
-        persistance.sqlconectar objetoconector = new persistance.sqlconectar();
+   public void insertarpersonalasignado(JTable personas, int idasignacion) {
+    PreparedStatement ps1 = null;
+    persistance.sqlconectar objetoconector = new persistance.sqlconectar();
+    String estatusActivo = "Activo";
+    String estatusInactivo = "Inactivo";
 
-        try {
-           
-            
+    try {
+        // Query para llamar al procedimiento almacenado con el estatus
+        String query1 = "CALL insertarasignacionfechatrabajador(?, ?, ?)";
+        ps1 = objetoconector.sqlconectando().prepareStatement(query1);
 
-            // Query para llamar al procedimiento almacenado
-            String query1 = "CALL insertarasignacionfechatrabajador(?, ?)";
-            ps1 = objetoconector.sqlconectando().prepareStatement(query1);
-            
+        for (int i = 0; i < personas.getRowCount(); i++) {
+            Boolean isSelected = (Boolean) personas.getValueAt(i, 1);
+            String nombreTrabajador = (String) personas.getValueAt(i, 0);
+            int trabajadorId = getTrabajadorId(nombreTrabajador);  // Método para obtener el ID del trabajador
 
-            for (int i = 0; i < personas.getRowCount(); i++) {
-                Boolean isSelected = (Boolean) personas.getValueAt(i, 1);
-                if (isSelected != null && isSelected) {
-                    String nombreTrabajador = (String) personas.getValueAt(i, 0);
-
-                    // Ejecutar el procedimiento almacenado
-                    ps1.setString(1, nombreTrabajador);
-                    ps1.setInt(2, idasignacion);
-                   rs1 = ps1.executeQuery();
-                }
-            }
-
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Su personal ha sido asignado.");
-        } finally {
-            // Cerrar los recursos en el bloque finally
-            try {
-                if (ps1 != null) ps1.close();
-                if (rs1 != null) rs1.close();
-                if (objetoconector.sqlconectando() != null) objetoconector.sqlconectando().close();
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (isSelected != null && isSelected) {
+                // Insertar con estado 'Activo'
+                ps1.setString(1, nombreTrabajador);
+                ps1.setInt(2, idasignacion);
+                ps1.setString(3, estatusActivo);
+                ps1.executeUpdate();
+            } else {
+                // Insertar con estado 'Inactivo'
+                ps1.setString(1, nombreTrabajador);
+                ps1.setInt(2, idasignacion);
+                ps1.setString(3, estatusInactivo);
+                ps1.executeUpdate();
             }
         }
+        JOptionPane.showMessageDialog(null, "Personal asignado con estado actualizado.");
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(null, "Error al asignar personal.");
+        e.printStackTrace();
+    } finally {
+        // Cerrar los recursos en el bloque finally
+        try {
+            if (ps1 != null) ps1.close();
+            if (objetoconector.sqlconectando() != null) objetoconector.sqlconectando().close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+}
+
+private int getTrabajadorId(String nombreTrabajador) {
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    
+    persistance.sqlconectar objetoconector = new persistance.sqlconectar();
+    int trabajadorId = -1; // Valor por defecto en caso de no encontrar el ID
+
+    try {
+        
+
+        // Query para buscar el ID del trabajador por nombre
+        String query = "SELECT idtrabajador FROM Trabajador WHERE nombre = ?";
+        ps = objetoconector.sqlconectando().prepareStatement(query);
+        ps.setString(1, nombreTrabajador);
+
+        // Ejecutar la consulta
+        rs = ps.executeQuery();
+
+        // Procesar el resultado
+        if (rs.next()) {
+            trabajadorId = rs.getInt("idtrabajador");
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        // Cerrar los recursos en el bloque finally
+        try {
+            if (rs != null) rs.close();
+            if (ps != null) ps.close();
+            if (objetoconector.sqlconectando() != null) objetoconector.sqlconectando().close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    return trabajadorId;
+}
+
+
     
      public void mostrarasignaciones(JTable tabla, JTextField id, JComboBox estatus, JComboBox proyecto, JTextPane actualizar){
         try{
@@ -773,7 +818,7 @@ public void muestratablamenup(JTable tablav) {
             //conn = (Connection) objetoconector.sqlconectando();
             
             // Query para obtener todos los nombres de la tabla trabajador
-            String query1 = "SELECT nombre FROM trabajador";
+            String query1 = "SELECT idtrabajador AS ID, nombre AS Nombre FROM trabajador";
             ps1 = objetoconector.sqlconectando().prepareStatement(query1);
             rs1 = ps1.executeQuery();
 
@@ -781,9 +826,10 @@ public void muestratablamenup(JTable tablav) {
             DefaultTableModel model = new DefaultTableModel() {
                 @Override
                 public Class<?> getColumnClass(int columnIndex) {
-                    return columnIndex == 1 ? Boolean.class : String.class;
+                    return columnIndex == 2 ? Boolean.class : String.class;
                 }
             };
+            model.addColumn("ID");
             model.addColumn("Nombre");
             model.addColumn("Seleccionar");
 
@@ -793,7 +839,7 @@ public void muestratablamenup(JTable tablav) {
             Set<String> nombresSeleccionados = new HashSet<>();
 
             // Query para obtener los nombres seleccionados por el procedimiento almacenado
-            String query2 = "CALL recuperanombresasignacion(?)";
+            String query2 = "CALL recuperanombresasignacion(?)";//Aquí se va recuperar el id 
             ps2 = objetoconector.sqlconectando().prepareStatement(query2);
             ps2.setString(1, idasignacion);
             rs2 = ps2.executeQuery();
@@ -802,13 +848,14 @@ public void muestratablamenup(JTable tablav) {
                 nombresSeleccionados.add(rs2.getString("nombre"));
             }
 
-            // Agregar todos los nombres a la tabla, marcando los seleccionados
+             rs1 = ps1.executeQuery();
             while (rs1.next()) {
-                String nombre = rs1.getString("nombre");
+                String id = rs1.getString("ID");
+                String nombre = rs1.getString("Nombre");
+                //boolean seleccionado = false; // Por defecto, ningún checkbox seleccionado
                 boolean seleccionado = nombresSeleccionados.contains(nombre);
-                model.addRow(new Object[]{nombre, seleccionado});
-            }
-
+                model.addRow(new Object[]{id, nombre, seleccionado});
+         }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, "Error: " + e.toString());
         } finally {
